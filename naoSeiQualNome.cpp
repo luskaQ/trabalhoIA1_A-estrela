@@ -14,7 +14,7 @@ private:
         string ipEndereco;
         double longitude;
         double latitude;
-        float g, f;
+        double g, f;
         bool visited;
         int parent;
     };
@@ -129,6 +129,9 @@ public:
                VEL_LUZ;
     }
 
+    // O nosso A estrela funciona ao criar ligacoes de nos pais que vao do inicio ate achar o no final, com base no caminho curto encontrado
+    //Para construir o caminho mais curto, basta fazer "Uma viagem de ponteiro" do no final e seus pais ate chegar no inicial
+
     void a_estrela()
     {
         for (int i = 0; i < vertices; i++)
@@ -150,38 +153,40 @@ public:
         while (!lista_abertos.empty() && noAtual != noFinal)
         {
             sort(lista_abertos.begin(), lista_abertos.end(), [&](int a, int b)
-                 { return indicesIps[a].f < indicesIps[b].f; });
+                 { return indicesIps[a].f < indicesIps[b].f; }); // ao inves de comparar os valores da lista em si, ele os utiliza para comparar em indicesIp
             noAtual = lista_abertos.front();
-            lista_abertos.erase(lista_abertos.begin());
+            lista_abertos.erase(lista_abertos.begin()); // removo o no aberto da lista de abertos
 
-            if (noAtual == noFinal)
+            if (noAtual == noFinal) // cheguei no resultado?
                 break;
 
-            lista_fechados.push_back(noAtual);
-            indicesIps[noAtual].visited = true;
+            lista_fechados.push_back(noAtual);  // Ja vou verificar esse no, ele pode ir para a lista de fechados
+            indicesIps[noAtual].visited = true; // faco ele ter sido visitado
 
-            for (auto const &[vizinho, peso] : arestas[noAtual])
+            for (auto const &[vizinho, peso] : arestas[noAtual]) // iterar sob todas as arestas do no atual, [idx do vizinho, custo], arestas é um vetor de vetor de pares, lembrando
             {
                 if (indicesIps[vizinho].visited)
-                    continue;
+                    continue; // Se iterei um no ja visitado, posso pular
 
-                float g_tentativo = indicesIps[noAtual].g + peso;
+                float g_tentativo = indicesIps[noAtual].g + peso; // somo o quanto eu ja andei para chegar no noAtual (g) com o peso da aresta que estou verificando,
+                                                                  // o que resultara no quanto eu vou andar para chegar no vizinho
 
                 bool estaAberto = any_of(lista_abertos.begin(), lista_abertos.end(), [&](int v)
-                                         { return v == vizinho; });
+                                         { return v == vizinho; }); // se algo indice da lista de abertos for igual o do vizinho, retorna true, isto é, s eo vizinho estiver aberto
 
                 if (!estaAberto)
-                    lista_abertos.push_back(vizinho);
-                else if (g_tentativo >= indicesIps[vizinho].g)
-                    continue;
+                    lista_abertos.push_back(vizinho);          // se ele nao esta aberto, abra ele
+                else if (g_tentativo >= indicesIps[vizinho].g) // se ja foi aberto e se o caminho que testei agora vai me fazer andar a mesma quantia ou
+                    continue;                                  // mais doque andei no g do vizinho, vou para a proxima iteração
+                                                                //essa verificacao é importante para nao sobrescrever um caminho curto ja encontrado em outra iteração
 
-                indicesIps[vizinho].parent = noAtual;
-                indicesIps[vizinho].g = g_tentativo;
-                indicesIps[vizinho].f = g_tentativo + calcular_h_de_n(vizinho, noFinal);
+                indicesIps[vizinho].parent = noAtual; // Se nao, o pai do vizinho se torna o noAtual
+                indicesIps[vizinho].g = g_tentativo;  // caminho que vou percorrer para chegar no vizinho
+                indicesIps[vizinho].f = g_tentativo + calcular_h_de_n(vizinho, noFinal); // minha funcao heuristica recebe o quanto ja andei mais o quanto ainda falta
             }
         }
 
-        if (!indicesIps[noFinal].visited && noAtual != noFinal)
+        if (!indicesIps[noFinal].visited && noAtual != noFinal) //da forma que foi programado, o no final deve construir um caminho ate o inicial a partir dos pais
         {
             cout << "Nenhum caminho encontrado!\n";
             return;
@@ -194,7 +199,7 @@ public:
             caminho.push_back(indicesIps[idxAtual].ipEndereco);
             idxAtual = indicesIps[idxAtual].parent;
             if (idxAtual == noInicial)
-            { 
+            {
                 caminho.push_back(indicesIps[idxAtual].ipEndereco);
                 break;
             }
@@ -218,7 +223,7 @@ int main()
     cin >> n;
     GrafoIp grafo = GrafoIp(n);
     grafo.popularIps();
-    grafo.definirNoInicialFinal(); 
+    grafo.definirNoInicialFinal();
     grafo.popularGrafo();
     grafo.exibirGrafo();
     grafo.a_estrela();
